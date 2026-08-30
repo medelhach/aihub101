@@ -27,8 +27,7 @@ RUN python -m pip install --no-index --find-links=/wheels ai-intelligence-hub-ap
 
 COPY alembic.ini ./
 COPY migrations ./migrations
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY entrypoint.py ./entrypoint.py
 
 USER app
 EXPOSE 8000
@@ -36,4 +35,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/live')"
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["python", "entrypoint.py"]
