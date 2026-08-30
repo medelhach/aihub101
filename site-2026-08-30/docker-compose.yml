@@ -19,7 +19,7 @@ services:
     environment:
       APP_ENV: development
       APP_CORS_ORIGINS: '["http://localhost:3000"]'
-      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend"]'
+      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend","backend:8000"]'
       APP_FRONTEND_URL: http://localhost:3000
       APP_BACKEND_URL: http://localhost:8000
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_hub
@@ -49,11 +49,10 @@ services:
     entrypoint: ["python", "-m", "app.workers.content_cycle"]
     environment:
       APP_ENV: development
-      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend"]'
+      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend","backend:8000"]'
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_hub
       CONTENT_CYCLE_INTERVAL_SECONDS: "900"
       PUBLISHING_MAX_CANDIDATES_PER_CYCLE: "40"
-      CONTENT_INGESTION_USER_AGENT: "AI-Intelligence-Hub/0.1 (+https://localhost:3000)"
     depends_on:
       backend:
         condition: service_healthy

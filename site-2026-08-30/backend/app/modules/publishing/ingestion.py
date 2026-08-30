@@ -10,8 +10,6 @@ from app.modules.content_ingestion.fetchers.http import HttpContentFetcher
 from app.modules.content_ingestion.models import DuplicateAssessment, NormalizedContent
 from app.modules.content_ingestion.normalizer import DefaultContentNormalizer
 from app.modules.content_ingestion.operations import RegisteredSource
-from app.modules.content_ingestion.parsers.atom import AtomParser
-from app.modules.content_ingestion.parsers.rss import RSSParser
 from app.modules.content_ingestion.persistence.uow import PostgreSQLIngestionUnitOfWork
 from app.modules.content_ingestion.rate_limit import InMemoryRateLimiter
 from app.modules.content_ingestion.rss_source import RSSSource
@@ -20,6 +18,7 @@ from app.modules.content_ingestion.security import SSRFGuard
 from app.modules.content_ingestion.service import ContentIngestionEngine, ParserRegistry
 from app.modules.content_ingestion.validation import DefaultContentValidator
 from app.modules.publishing.atom_source import AtomFeedSource
+from app.modules.publishing.feed_parser import TolerantFeedParser
 from app.modules.publishing.sources import FEED_SOURCES
 
 
@@ -72,8 +71,9 @@ def build_engine(settings: Settings, client: httpx.AsyncClient) -> ContentIngest
             config,
             url_guard=SSRFGuard(),
             rate_limiter=InMemoryRateLimiter(config.rate_limit_per_minute),
+            max_redirects=5,
         ),
-        parsers=ParserRegistry([RSSParser(), AtomParser()]),
+        parsers=ParserRegistry([TolerantFeedParser("rss"), TolerantFeedParser("atom")]),
         normalizer=DefaultContentNormalizer(),
         validator=DefaultContentValidator(),
         duplicate_detector=AcceptAllDuplicateDetector(),

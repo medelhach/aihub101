@@ -8,10 +8,11 @@ export const metadata = {
 
 export default async function NewsPage() {
   let items: StorySummary[] = [];
+  let loadError: string | null = null;
   try {
     items = (await listNews(24)).items;
-  } catch {
-    items = [];
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Failed to load news.";
   }
 
   return (
@@ -24,9 +25,14 @@ export default async function NewsPage() {
           news report and links back to the original publisher.
         </p>
       </header>
-      {items.length === 0 ? (
+      {loadError ? (
+        <p className="rounded-2xl border border-dashed border-red-200 bg-white p-8 text-sm text-slate-600">
+          {loadError}
+        </p>
+      ) : items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-600">
-          No news briefs yet. Run the content-cycle worker to ingest live feeds.
+          No news briefs yet. Restart the API so editorial seed stories can load, then wait for
+          the content-cycle worker.
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -10,8 +11,19 @@ from app.api.router import api_router
 from app.config.settings import Settings, get_settings
 from app.core.container import AppContainer
 from app.core.error_handlers import register_error_handlers
-from app.core.logging import configure_logging
+from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+
+
+async def _run_startup_cycle(container: AppContainer) -> None:
+    from app.modules.publishing.service import ContentCycleService
+
+    if container.session_factory is None:
+        return
+    try:
+        await ContentCycleService(container.settings, container.session_factory).run()
+    except Exception:
+        get_logger("publishing.startup").exception("startup_content_cycle_failed")
 
 
 def create_application(settings: Settings | None = None) -> FastAPI:
@@ -32,10 +44,15 @@ def create_application(settings: Settings | None = None) -> FastAPI:
 
             async with container.session_factory() as session:
                 try:
-                    await PublishingRepository(session).seed_models()
+                    repository = PublishingRepository(session)
+                    await repository.seed_models()
+                    await repository.seed_editorial_stories()
                     await session.commit()
                 except Exception:
                     await session.rollback()
+                    get_logger("publishing.startup").exception("startup_seed_failed")
+            if not resolved_settings.is_testing:
+                asyncio.create_task(_run_startup_cycle(container))
         yield
         if container.engine is not None:
             await container.engine.dispose()

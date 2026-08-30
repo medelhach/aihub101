@@ -8,10 +8,11 @@ export const metadata = {
 
 export default async function ArticlesPage() {
   let items: StorySummary[] = [];
+  let loadError: string | null = null;
   try {
     items = (await listArticles(24)).items;
-  } catch {
-    items = [];
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Failed to load articles.";
   }
 
   return (
@@ -23,9 +24,14 @@ export default async function ArticlesPage() {
           Meta AI, NVIDIA, AWS, Microsoft Research, and arXiv.
         </p>
       </header>
-      {items.length === 0 ? (
+      {loadError ? (
+        <p className="rounded-2xl border border-dashed border-red-200 bg-white p-8 text-sm text-slate-600">
+          {loadError}
+        </p>
+      ) : items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-600">
-          No articles yet. The worker publishes them from research and lab feeds.
+          No articles yet. Restart the API so editorial seed stories can load, then wait for the
+          content-cycle worker.
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

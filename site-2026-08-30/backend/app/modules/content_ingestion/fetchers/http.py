@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
@@ -8,6 +9,8 @@ from app.modules.content_ingestion.exceptions import ContentTooLargeError, Fetch
 from app.modules.content_ingestion.interfaces import RateLimiter, URLGuard
 from app.modules.content_ingestion.models import FetchedContent, FetchRequest
 from app.utils.datetime import utc_now
+
+_REDIRECT_STATUS = {301, 302, 303, 307, 308}
 
 
 class HttpContentFetcher:
@@ -19,6 +22,7 @@ class HttpContentFetcher:
         url_guard: URLGuard,
         rate_limiter: RateLimiter | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        max_redirects: int = 0,
     ) -> None:
         if client.follow_redirects:
             raise ValueError("The ingestion HTTP client must not follow redirects automatically.")
@@ -27,13 +31,30 @@ class HttpContentFetcher:
         self._url_guard = url_guard
         self._rate_limiter = rate_limiter
         self._sleep = sleep
+        self._max_redirects = max_redirects
 
     async def fetch(self, request: FetchRequest) -> FetchedContent:
-        await self._url_guard.validate(request.url, request.allowed_domains)
         if self._rate_limiter is not None:
             await self._rate_limiter.acquire(request.source_id)
 
+        current = request
         headers = {"User-Agent": self._config.user_agent, **request.headers}
+        for hop in range(self._max_redirects + 1):
+            await self._url_guard.validate(current.url, current.allowed_domains)
+            fetched, location = await self._download(current, headers)
+            if location is None:
+                return fetched
+            if hop >= self._max_redirects:
+                break
+            current = self._redirected_request(current, location)
+        raise FetchError(
+            "Unable to fetch content.",
+            details={"source_id": request.source_id, "url": request.url},
+        )
+
+    async def _download(
+        self, request: FetchRequest, headers: dict[str, str]
+    ) -> tuple[FetchedContent, str | None]:
         attempts = self._config.retries + 1
         for attempt in range(attempts):
             try:
@@ -43,18 +64,34 @@ class HttpContentFetcher:
                     headers=headers,
                     timeout=self._config.timeout_seconds,
                 ) as response:
+                    if response.status_code in _REDIRECT_STATUS:
+                        return (
+                            FetchedContent(
+                                request=request,
+                                body=b"",
+                                content_type=response.headers.get("content-type"),
+                                encoding=response.encoding or "utf-8",
+                                status_code=response.status_code,
+                                fetched_at=utc_now(),
+                                final_url=str(response.url),
+                            ),
+                            response.headers.get("location"),
+                        )
                     if response.status_code == 304:
-                        return FetchedContent(
-                            request=request,
-                            body=b"",
-                            content_type=response.headers.get("content-type"),
-                            encoding=response.encoding or "utf-8",
-                            status_code=304,
-                            fetched_at=utc_now(),
-                            final_url=str(response.url),
-                            etag=response.headers.get("etag"),
-                            last_modified=response.headers.get("last-modified"),
-                            not_modified=True,
+                        return (
+                            FetchedContent(
+                                request=request,
+                                body=b"",
+                                content_type=response.headers.get("content-type"),
+                                encoding=response.encoding or "utf-8",
+                                status_code=304,
+                                fetched_at=utc_now(),
+                                final_url=str(response.url),
+                                etag=response.headers.get("etag"),
+                                last_modified=response.headers.get("last-modified"),
+                                not_modified=True,
+                            ),
+                            None,
                         )
                     if response.status_code == 429 or response.status_code >= 500:
                         if attempt < attempts - 1:
@@ -73,16 +110,19 @@ class HttpContentFetcher:
                             raise ContentTooLargeError(
                                 "Fetched content exceeds the configured size limit."
                             )
-                    return FetchedContent(
-                        request=request,
-                        body=bytes(body),
-                        content_type=response.headers.get("content-type"),
-                        encoding=response.encoding or "utf-8",
-                        status_code=response.status_code,
-                        fetched_at=utc_now(),
-                        final_url=str(response.url),
-                        etag=response.headers.get("etag"),
-                        last_modified=response.headers.get("last-modified"),
+                    return (
+                        FetchedContent(
+                            request=request,
+                            body=bytes(body),
+                            content_type=response.headers.get("content-type"),
+                            encoding=response.encoding or "utf-8",
+                            status_code=response.status_code,
+                            fetched_at=utc_now(),
+                            final_url=str(response.url),
+                            etag=response.headers.get("etag"),
+                            last_modified=response.headers.get("last-modified"),
+                        ),
+                        None,
                     )
             except ContentTooLargeError:
                 raise
@@ -97,8 +137,21 @@ class HttpContentFetcher:
                         details={"source_id": request.source_id, "url": request.url},
                     ) from exc
                 await self._sleep(2**attempt)
-
         raise FetchError("Unable to fetch content.")
+
+    @staticmethod
+    def _redirected_request(request: FetchRequest, location: str) -> FetchRequest:
+        next_url = urljoin(request.url, location)
+        hostname = (urlsplit(next_url).hostname or "").rstrip(".")
+        allowed = request.allowed_domains
+        if hostname and hostname.casefold() not in {item.casefold() for item in allowed}:
+            allowed = (*allowed, hostname)
+        return FetchRequest(
+            url=next_url,
+            source_id=request.source_id,
+            headers=request.headers,
+            allowed_domains=allowed,
+        )
 
     @staticmethod
     def _retry_delay(attempt: int, response: httpx.Response) -> float:

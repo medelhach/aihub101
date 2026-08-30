@@ -4,6 +4,15 @@ from app.modules.catalog.comparison import compare_models
 from app.modules.catalog.records import model_catalog
 from app.modules.publishing.composer import compose_story
 from app.modules.publishing.extraction import extract_paragraphs
+from app.modules.publishing.seed_stories import editorial_seed_candidates
+
+
+def test_editorial_seed_covers_news_and_articles() -> None:
+    seeds = editorial_seed_candidates()
+    sections = {item[0].section for item in seeds}
+    assert "news" in sections
+    assert "articles" in sections
+    assert len(seeds) >= 6
 
 
 def test_catalog_has_at_least_fifty_unique_models() -> None:

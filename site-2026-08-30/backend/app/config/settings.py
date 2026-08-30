@@ -53,7 +53,9 @@ class Settings(BaseSettings):
     content_ingestion_rate_limit_per_minute: int = Field(default=60, ge=1, le=10_000)
     content_ingestion_enabled_sources: list[str] = Field(default_factory=list)
     content_ingestion_disabled_sources: list[str] = Field(default_factory=list)
-    content_ingestion_user_agent: str = "AI-Intelligence-Hub/0.1"
+    content_ingestion_user_agent: str = (
+        "Mozilla/5.0 (compatible; AI-Intelligence-Hub/0.1; +https://localhost:3000)"
+    )
     content_ingestion_maximum_article_size_bytes: int = Field(
         default=5 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024
     )

@@ -1,6 +1,5 @@
-from datetime import date
-from hashlib import sha256
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -75,12 +74,12 @@ class ContentCycleService:
             await ensure_feed_sources(uow)
         async with build_http_client(self._settings, follow_redirects=False) as client:
             engine = build_engine(self._settings, client)
-            day = date.today().isoformat()
+            day = utc_now().date().isoformat()
             async with PostgreSQLIngestionUnitOfWork(self._session_factory) as listing:
                 enabled = list(await listing.sources.list_enabled())
             for source in enabled:
                 sources_processed += 1
-                key = f"{source.key}:{day}:{utc_now().hour}"
+                cycle_key = f"{source.key}:{uuid4()}"
                 try:
                     async with PostgreSQLIngestionUnitOfWork(self._session_factory) as uow:
                         runner = IngestionRunner(
@@ -92,7 +91,7 @@ class ContentCycleService:
                             dead_letters=LoggingDeadLetterSink(),
                             logger=self._logger,
                         )
-                        result = await runner.run(source.key, sha256(key.encode()).hexdigest())
+                        result = await runner.run(source.key, cycle_key)
                         candidates_created += result.item_count
                 except Exception:
                     self._logger.exception("source_cycle_failed", extra={"source_key": source.key})

@@ -84,23 +84,39 @@ export type Comparison = {
   };
 };
 
+function runtimeEnv(name: string): string | undefined {
+  const value = process.env[name];
+  return value ? value : undefined;
+}
+
 function apiBaseUrl() {
   if (typeof window === "undefined") {
-    return (
-      process.env.INTERNAL_API_URL ??
-      process.env.NEXT_PUBLIC_API_URL ??
-      "http://localhost:8000/api/v1"
-    );
+    const internal = runtimeEnv("INTERNAL_API_URL");
+    if (internal) {
+      return internal;
+    }
+    // Docker Compose frontend container cannot reach the API via localhost.
+    if (process.env.NODE_ENV === "production") {
+      return "http://backend:8000/api/v1";
+    }
+    return "http://localhost:8000/api/v1";
   }
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 }
 
 async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    headers: { Accept: "application/json" },
-  });
+  const url = `${apiBaseUrl()}${path}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error(`Cannot reach the API at ${url}`);
+  }
   if (!response.ok) {
-    throw new Error(`API request failed (${response.status})`);
+    throw new Error(`API request failed (${response.status}) for ${url}`);
   }
   return (await response.json()) as T;
 }

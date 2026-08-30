@@ -108,6 +108,7 @@ class PublishingRepository:
         candidate: PendingCandidate,
         composed: ComposedStory,
         published_at: datetime | None,
+        link_candidate: bool = True,
     ) -> PublishedStory | None:
         canonical = candidate.canonical_url or candidate.url
         statement = insert(PublishedStoryModel).values(
@@ -131,7 +132,7 @@ class PublishingRepository:
             language=candidate.language,
             hero_image_url=candidate.images[0] if candidate.images else None,
             generation_method=composed.generation_method,
-            candidate_id=candidate.id,
+            candidate_id=candidate.id if link_candidate else None,
         )
         model = await self._session.scalar(
             statement.on_conflict_do_nothing(constraint="uq_published_stories_canonical_url").returning(
@@ -180,6 +181,27 @@ class PublishingRepository:
             .where(PublishedStoryModel.section == section)
         )
         return int(result or 0)
+
+    async def seed_editorial_stories(self) -> int:
+        from app.modules.publishing.seed_stories import (
+            compose_seed_story,
+            editorial_seed_candidates,
+        )
+
+        inserted = 0
+        for candidate, paragraphs in editorial_seed_candidates():
+            if await self.exists_by_canonical_url(candidate.url):
+                continue
+            composed = compose_seed_story(candidate, paragraphs)
+            story = await self.save_story(
+                candidate=candidate,
+                composed=composed,
+                published_at=candidate.published_at,
+                link_candidate=False,
+            )
+            if story is not None:
+                inserted += 1
+        return inserted
 
     async def list_models(
         self,
