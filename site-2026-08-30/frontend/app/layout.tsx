@@ -9,10 +9,10 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Intelligence Hub",
-    template: "%s | AI Intelligence Hub",
+    default: "The Intelligence Desk",
+    template: "%s | The Intelligence Desk",
   },
-  description: "Discover and understand the evolving AI ecosystem.",
+  description: "AI news briefs, research articles, and a model comparison desk.",
 };
 
 type RootLayoutProps = {
@@ -22,13 +22,11 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full bg-slate-50 text-slate-950 antialiased">
+      <body className="min-h-full bg-paper text-ink antialiased">
         <Providers>
           <div className="flex min-h-screen flex-col">
             <Header />
-            <main className="mx-auto flex w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-              {children}
-            </main>
+            <main className="flex-1">{children}</main>
             <Footer />
           </div>
         </Providers>

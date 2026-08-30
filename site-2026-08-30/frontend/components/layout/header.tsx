@@ -1,47 +1,34 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
-import { cn } from "@/lib/utils";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/news", label: "News" },
-  { href: "/articles", label: "Articles" },
-  { href: "/models", label: "AI Models" },
-  { href: "/compare", label: "Compare" },
-];
+import { HeaderNav } from "@/components/layout/header-nav";
 
 export function Header() {
-  const pathname = usePathname();
+  const dated = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="text-base font-semibold tracking-tight text-slate-950">
-          AI Intelligence Hub
-        </Link>
-        <nav aria-label="Primary" className="flex flex-wrap items-center gap-1 text-sm">
-          {links.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950",
-                  active && "bg-slate-950 text-white hover:bg-slate-800 hover:text-white",
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+    <header className="bg-paper">
+      <div className="mx-auto w-full max-w-[1280px] px-4 pt-5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4 text-[0.7rem] tracking-[0.18em] text-ink/55 uppercase">
+          <p>AI news · research · models</p>
+          <p className="hidden sm:block">{dated}</p>
+        </div>
+        <div className="py-5 text-center">
+          <p className="text-[0.7rem] font-semibold tracking-[0.42em] text-crimson uppercase">
+            Independent briefing
+          </p>
+          <Link href="/" className="font-display mt-2 block text-4xl tracking-tight text-ink sm:text-5xl">
+            The Intelligence Desk
+          </Link>
+          <p className="mt-2 text-sm text-ink/60">
+            What changed in AI, why it matters, and which models to use.
+          </p>
+        </div>
+        <HeaderNav />
       </div>
     </header>
   );

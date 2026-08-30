@@ -13,6 +13,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "OpenAI ships GPT-5 as a unified flagship with adaptive reasoning",
             "https://openai.com/index/introducing-gpt-5/",
             "OpenAI",
+            "/covers/cover-neural-lab.png",
             (
                 "OpenAI introduced GPT-5 as its main general-purpose model family, combining "
                 "chat quality with adjustable reasoning effort in a single product surface.",
@@ -26,6 +27,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "Anthropic's Claude 4 line pushes coding agents and long-running tasks",
             "https://www.anthropic.com/news/claude-4",
             "Anthropic",
+            "/covers/cover-code-desk.png",
             (
                 "Anthropic released Claude 4 models aimed at coding, computer use, and extended "
                 "thinking. Opus sits at the high end; Sonnet is the volume workhorse.",
@@ -39,6 +41,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "Google Gemini 2.5 brings long context and thinking budgets to Vertex AI",
             "https://blog.google/technology/google-deepmind/gemini-model-thinking-updates-march-2025/",
             "Google",
+            "/covers/cover-city-ai.png",
             (
                 "Google's Gemini 2.5 models emphasize native multimodality and million-token class "
                 "context, with Flash SKUs aimed at cost-sensitive applications.",
@@ -52,6 +55,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "Meta Llama 4 opens a natively multimodal MoE stack for self-hosting",
             "https://www.llama.com/llama-downloads/",
             "Meta",
+            "/covers/cover-servers.png",
             (
                 "Meta's Llama 4 Scout and Maverick releases continue the open-weights strategy "
                 "with mixture-of-experts models and very long context options.",
@@ -65,6 +69,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "How to read an AI model card without getting lost in marketing",
             "https://huggingface.co/docs/hub/model-cards",
             "AI Intelligence Hub",
+            "/covers/cover-library.png",
             (
                 "A useful model card states intended use, data, evaluation, and limitations in "
                 "language a practitioner can test. Treat missing sections as risk, not as proof "
@@ -79,6 +84,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "Open versus hosted models: a working checklist for 2026",
             "https://arxiv.org/list/cs.AI/recent",
             "AI Intelligence Hub",
+            "/covers/cover-chip.png",
             (
                 "Hosted APIs reduce operational load and include vendor filters, but they create "
                 "dependency on price, rate limits, and policy changes.",
@@ -92,6 +98,7 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
             "Why RSS still beats social media for tracking AI research",
             "https://rss.arxiv.org/rss/cs.AI",
             "AI Intelligence Hub",
+            "/covers/cover-research-hands.png",
             (
                 "Vendor blogs, arXiv, and lab RSS feeds remain the most inspectable way to see "
                 "what changed, when it was published, and where the primary artifact lives.",
@@ -105,15 +112,15 @@ def editorial_seed_candidates() -> tuple[tuple[PendingCandidate, tuple[str, ...]
 
 
 def _news(
-    title: str, url: str, source: str, paragraphs: tuple[str, ...]
+    title: str, url: str, source: str, image: str, paragraphs: tuple[str, ...]
 ) -> tuple[PendingCandidate, tuple[str, ...]]:
-    return _candidate(title, url, source, "news", paragraphs)
+    return _candidate(title, url, source, "news", image, paragraphs)
 
 
 def _article(
-    title: str, url: str, source: str, paragraphs: tuple[str, ...]
+    title: str, url: str, source: str, image: str, paragraphs: tuple[str, ...]
 ) -> tuple[PendingCandidate, tuple[str, ...]]:
-    return _candidate(title, url, source, "articles", paragraphs)
+    return _candidate(title, url, source, "articles", image, paragraphs)
 
 
 def _candidate(
@@ -121,6 +128,7 @@ def _candidate(
     url: str,
     source: str,
     section: str,
+    image: str,
     paragraphs: tuple[str, ...],
 ) -> tuple[PendingCandidate, tuple[str, ...]]:
     candidate = PendingCandidate(
@@ -136,7 +144,7 @@ def _candidate(
         url=url,
         canonical_url=url,
         tags=(section, "artificial-intelligence"),
-        images=(),
+        images=(image,),
         language="en",
         allowed_domains=(),
     )

@@ -5,7 +5,7 @@ from defusedxml import ElementTree
 
 from app.modules.content_ingestion.exceptions import ParseError
 from app.modules.content_ingestion.models import FetchedContent, ParsedContent
-from app.modules.content_ingestion.parsers.common import decode_body
+from app.modules.content_ingestion.parsers.common import collect_item_images, decode_body
 
 
 class AtomParser:
@@ -40,6 +40,7 @@ class AtomParser:
                         for category in entry.findall("{*}category")
                         if (term := category.attrib.get("term"))
                     ),
+                    images=collect_item_images(entry),
                 )
             )
         return items

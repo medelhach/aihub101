@@ -190,7 +190,9 @@ class PublishingRepository:
 
         inserted = 0
         for candidate, paragraphs in editorial_seed_candidates():
-            if await self.exists_by_canonical_url(candidate.url):
+            canonical = candidate.canonical_url or candidate.url
+            if await self.exists_by_canonical_url(canonical):
+                await self._fill_hero_image(canonical, candidate.images)
                 continue
             composed = compose_seed_story(candidate, paragraphs)
             story = await self.save_story(
@@ -202,6 +204,15 @@ class PublishingRepository:
             if story is not None:
                 inserted += 1
         return inserted
+
+    async def _fill_hero_image(self, canonical_url: str, images: tuple[str, ...]) -> None:
+        if not images:
+            return
+        model = await self._session.scalar(
+            select(PublishedStoryModel).where(PublishedStoryModel.canonical_url == canonical_url)
+        )
+        if model is not None and not model.hero_image_url:
+            model.hero_image_url = images[0]
 
     async def list_models(
         self,

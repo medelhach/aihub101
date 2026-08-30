@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { catalogCover } from "@/lib/story-media";
 import { getModel } from "@/services/api";
 
 type ModelDetailPageProps = {
@@ -47,12 +48,18 @@ export default async function ModelDetailPage({ params }: ModelDetailPageProps) 
   ];
 
   return (
-    <article className="flex w-full flex-col gap-10">
-      <header className="max-w-3xl">
-        <p className="text-xs font-semibold tracking-[0.2em] text-slate-500 uppercase">
+    <article className="mx-auto flex w-full max-w-[1280px] flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">
+      <header>
+        <p className="text-[0.7rem] font-semibold tracking-[0.28em] text-crimson uppercase">
           {model.provider}
         </p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">{model.name}</h1>
+        <h1 className="font-display mt-2 text-4xl tracking-tight md:text-5xl">{model.name}</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={catalogCover(model.slug)}
+          alt=""
+          className="mt-8 aspect-[16/7] w-full object-cover"
+        />
         <p className="mt-4 text-base leading-7 text-slate-600">{model.architecture}</p>
         <p className="mt-4">
           <Link href={`/compare?models=${model.slug}`} className="text-sm font-medium underline">
