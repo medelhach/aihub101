@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-intelligence-hub-api"
+version = "0.1.0"
+description = "Async API foundation for the AI Intelligence Hub"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16,<2",
+    "asyncpg>=0.30,<1",
+    "defusedxml>=0.7,<1",
+    "fastapi>=0.116,<1",
+    "httpx>=0.28,<1",
+    "pydantic>=2.13,<3",
+    "pydantic-settings>=2.10,<3",
+    "python-json-logger>=3.3,<4",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.17,<2",
+    "pytest>=8.4,<9",
+    "pytest-asyncio>=1.1,<2",
+    "ruff>=0.12,<1",
+    "types-defusedxml>=0.7,<1",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["integration: requires real external infrastructure"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]

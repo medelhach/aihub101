@@ -1,0 +1,78 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      INTERNAL_API_URL: http://backend:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: development
+      APP_CORS_ORIGINS: '["http://localhost:3000"]'
+      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend"]'
+      APP_FRONTEND_URL: http://localhost:3000
+      APP_BACKEND_URL: http://localhost:8000
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_hub
+      CONTENT_CYCLE_INTERVAL_SECONDS: "900"
+      PUBLISHING_MAX_CANDIDATES_PER_CYCLE: "40"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build:
+      context: ./backend
+    entrypoint: ["python", "-m", "app.workers.content_cycle"]
+    environment:
+      APP_ENV: development
+      APP_TRUSTED_HOSTS: '["localhost","127.0.0.1","backend"]'
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_hub
+      CONTENT_CYCLE_INTERVAL_SECONDS: "900"
+      PUBLISHING_MAX_CANDIDATES_PER_CYCLE: "40"
+      CONTENT_INGESTION_USER_AGENT: "AI-Intelligence-Hub/0.1 (+https://localhost:3000)"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ai_hub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
